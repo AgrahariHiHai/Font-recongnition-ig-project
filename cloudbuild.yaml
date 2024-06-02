@@ -1,0 +1,56 @@
+steps:
+  # Building the docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    dir: 'codebase/'
+    args:
+      - 'build'
+      - '-t'
+      - 'europe-west2-docker.pkg.dev/$_PROJECT_ID/quantiphi-ig-marketing-compliance-backend-repo/cloud-run-backend:$COMMIT_SHA'
+      - '.'
+
+  # Pushing it into artifact registry
+  - name: 'gcr.io/cloud-builders/docker'
+    dir: 'codebase/'
+    args:
+      - 'push'
+      - 'europe-west2-docker.pkg.dev/$_PROJECT_ID/quantiphi-ig-marketing-compliance-backend-repo/cloud-run-backend:$COMMIT_SHA'
+
+  # Deploy image to Cloud Run
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'quantiphi-ig-marketing-compliance-backend'
+      - '--image'
+      - 'europe-west2-docker.pkg.dev/$_PROJECT_ID/quantiphi-ig-marketing-compliance-backend-repo/cloud-run-backend:$COMMIT_SHA'
+      - '--cpu'
+      - '4'
+      - '--memory'
+      - '8Gi'
+      - '--timeout'
+      - '3600'
+      - '--concurrency'
+      - '50'
+      - '--min-instances'
+      - '1'
+      - '--max-instances'
+      - '100'
+      - '--region'
+      - '$_REGION'
+      - '--vpc-connector'
+      - '$_VPC_CONNECTOR'
+      - '--vpc-egress'
+      - 'all-traffic'
+      # - '--service-account'
+      # - '$_SERVICE_ACCOUNT'
+      - '--set-env-vars'
+      - 'project_id=$_PROJECT_ID,location=$_LOCATION,bucket_name=$_BUCKET_NAME,openai_api_key=$_OPENAI_API_KEY,openai_model=$_OPENAI_MODEL,gemini_model=$_GEMINI_MODEL,endpoint_id=$_ENDPOINT_ID,endpoint_project_id=$_ENDPOINT_PROJECT_ID,endpoint_network_name=$_ENDPOINT_NETWORK_NAME'
+      - '--allow-unauthenticated'
+    env:
+      # - SERVICE_ACCOUNT=$_SERVICE_ACCOUNT
+      - VPC_CONNECTOR=$_VPC_CONNECTOR
+      - PROJECT_ID=$_PROJECT_ID
+      - ENV=$_ENV
+      - REGION=$_REGION
+images:
+  - 'europe-west2-docker.pkg.dev/$_PROJECT_ID/quantiphi-ig-marketing-compliance-backend-repo/cloud-run-backend:$COMMIT_SHA'
